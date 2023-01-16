@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.12...3.20)
 
 project(enet)
 
+option(ENET_BUILD_SHARED "Build shared library" OFF)
+
 # The "configure" step.
 include(CheckFunctionExists)
 include(CheckStructHasMember)
@@ -84,12 +86,34 @@ set(SOURCE_FILES
 source_group(include FILES ${INCLUDE_FILES})
 source_group(source FILES ${SOURCE_FILES})
 
-add_library(enet STATIC
-    ${INCLUDE_FILES}
-    ${SOURCE_FILES}
+if(ENET_BUILD_SHARED OR BUILD_SHARED_LIBS)
+    add_library(enet SHARED
+        ${INCLUDE_FILES}
+        ${SOURCE_FILES}
+    )
+
+    if (MSVC)
+        target_compile_definitions(enet
+            PRIVATE
+            ENET_DLL=1
+            ENET_BUILDING_LIB=1
+        )
+    endif()
+else ()
+    add_library(enet STATIC
+        ${INCLUDE_FILES}
+        ${SOURCE_FILES}
+    )
+endif ()
+
+target_compile_definitions(enet PRIVATE _WINSOCK_DEPRECATED_NO_WARNINGS)
+
+target_include_directories(enet
+    PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
-if (MINGW)
+if (WIN32)
     target_link_libraries(enet winmm ws2_32)
 endif()
 
